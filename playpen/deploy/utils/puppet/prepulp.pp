@@ -3,7 +3,11 @@
 class prepulp {
     include stdlib
 
-    package { 'redhat-lsb':
+    $base_packages = [
+        'redhat-lsb',
+        'wget'
+    ]
+    package { $base_packages:
         ensure => 'installed'
     }
 
