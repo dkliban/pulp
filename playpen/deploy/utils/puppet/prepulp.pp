@@ -23,6 +23,10 @@ class prepulp {
             'python-qpid',
         ]
 
+        exec { 'install pip':
+            command => '/usr/bin/curl -O https://pypi.python.org/packages/source/p/pip/pip-1.1.tar.gz && /bin/tar xfz pip-1.1.tar.gz && pushd pip-1.1 && /usr/bin/python setup.py install && popd && rm -rf pip-1.1 && rm -f pip-1.1.tar.gz'
+        }
+
         exec { 'install puppet repo':
             command => '/bin/rpm -ivh http://yum.puppetlabs.com/puppetlabs-release-el-5.noarch.rpm'
         } -> package { $el5_packages:
