@@ -15,8 +15,6 @@ def initialize(context):
 class MainSection(PulpCliSection):
     """
     The *content* main section.
-    :ivar context: The client context.
-    :type context: pulp.client.extensions.core.ClientContext
     """
 
     def __init__(self, context):
@@ -29,6 +27,11 @@ class MainSection(PulpCliSection):
 
 
 class SourcesSection(PulpCliSection):
+    """
+    The content *sources* section.
+    :ivar context: The client context.
+    :type context: pulp.client.extensions.core.ClientContext
+    """
 
     def __init__(self, context):
         """
