@@ -83,24 +83,27 @@ def update_images():
     snapshot_list = []
 
     try:
+        # Before we start, get a list of the old snapshots
+        old_snapshots = os1.get_pulp_images(distributions=args.distributions)
+
+        # Update each vanilla instance and then snapshot them
+        # TODO: It would be nice if this was threaded
         for instance in instance_list:
             update(instance)
             snapshot = os1.take_snapshot(instance, instance.name + '-SNAP')
             snapshot_list.append(snapshot)
-
         print 'Waiting for snapshots to finish... '
         os1.wait_for_snapshots(snapshot_list)
-
-        # Clean up old snapshots if necessary
-        #old_snapshots = os1.get_pulp_images(distributions=args.distributions)
-        #for snap in old_snapshots:
-        #    snap.delete()
-
-        # Mark the images as prepped.
+        # Mark the new images as prepped.
         meta = {os1_utils.META_IMAGE_STATUS_KEYWORD: os1_utils.META_IMAGE_STATUS_PREPPED}
         for snap in snapshot_list:
             os1.set_image_meta(snap, meta)
+
+        # If we got this far it should be okay to remove the old images
+        for snap in old_snapshots:
+            snap.delete()
     except Exception:
+        # If something went wrong, remove all the new snapshots
         for snap in snapshot_list:
             snap.delete()
         raise

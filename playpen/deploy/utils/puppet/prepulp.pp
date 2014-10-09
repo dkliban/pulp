@@ -5,6 +5,7 @@ class prepulp {
 
     $base_packages = [
         'redhat-lsb',
+        'java-1.7.0-openjdk-devel',
         'wget'
     ]
     package { $base_packages:
