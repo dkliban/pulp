@@ -26,6 +26,9 @@ from pulp.server.webservices.controllers.decorators import auth_required
 from pulp.server.webservices.controllers.search import SearchController
 from pulp.server.managers.content import orphan
 from pulp.server.content.sources.container import ContentContainer
+from pulp.server.tasks import content
+from pulp.common.tags import action_tag, resource_tag, ACTION_REFRESH_CONTENT_CATALOG,RESOURCE_CONTENT_SOURCE, RESOURCE_CONTENT_CATALOG
+
 
 
 class ContentTypesCollection(JSONController):
@@ -356,6 +359,25 @@ class ContentSourceCollection(JSONController):
             sources.append(d)
         return self.ok(sources)
 
+    def POST(self, action):
+        """
+        Content actions.
+        """
+        method = getattr(self, action, None)
+        if method:
+            return method()
+        else:
+            raise BadRequest()
+
+    def refresh(self):
+        """
+
+        """
+        tags = [action_tag(ACTION_REFRESH_CONTENT_CATALOG), resource_tag(RESOURCE_CONTENT_CATALOG,'0')]
+        content.refresh_content_container.apply_async(tags=tags)
+
+        return self.ok('')
+
 
 class ContentSourceResource(JSONController):
 
@@ -392,6 +414,7 @@ _URLS = ('/types/$', ContentTypesCollection,
          '/actions/delete_orphans/$', DeleteOrphansAction,  # deprecated in 2.4
          '/catalog/([^/]+)$', CatalogResource,
          '/sources/$', ContentSourceCollection,
+         '/sources/action/(refresh)/$', ContentSourceCollection,
          '/sources/([^/]+)/$', ContentSourceResource,)
 
 application = web.application(_URLS, globals())

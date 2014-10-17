@@ -31,6 +31,8 @@ RESOURCE_REPOSITORY_PROFILE_APPLICABILITY_TYPE = 'repository_profile_applicabili
 RESOURCE_ROLE_TYPE = 'role'
 RESOURCE_SCHEDULE_TYPE = 'schedule'
 RESOURCE_USER_TYPE = 'user'
+RESOURCE_CONTENT_CATALOG = 'content_catalog'
+RESOURCE_CONTENT_SOURCE = 'content_source'
 
 
 ACTION_SYNC_TYPE = 'sync'
@@ -45,6 +47,7 @@ ACTION_AGENT_UNIT_INSTALL = 'unit_install'
 ACTION_AGENT_UNIT_UPDATE = 'unit_update'
 ACTION_AGENT_UNIT_UNINSTALL = 'unit_uninstall'
 ACTION_UPDATE_DISTRIBUTOR = 'update_distributor'
+ACTION_REFRESH_CONTENT_CATALOG = 'refresh_content_catalog'
 
 # -- public -------------------------------------------------------------------
 
