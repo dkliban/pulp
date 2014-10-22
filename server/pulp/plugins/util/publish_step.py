@@ -256,6 +256,9 @@ class Step(object):
         :returns: The machine readable progress report for this task
         :rtype: dict
         """
+        if self.progress_failures > 0:
+            self.state = reporting_constants.STATE_FAILED
+
         total_processed = self.progress_successes + self.progress_failures
         report = {
             reporting_constants.PROGRESS_STEP_UUID: self.uuid,
@@ -825,20 +828,42 @@ class PluginStepIterativeProcessingMixin(object):
     A mixin for steps that iterate over a generator
     """
 
+    def __init__(self, exceptions=None):
+        """
+        :param exceptions: Exceptions which will not halt iteration
+        :type exceptions: list of Exception
+        """
+        self.acceptable_exceptions = exceptions
+
     def _process_block(self):
         """
         This block is called for the main processing loop and handles reporting.
         """
         generator = self.get_generator()
+        exceptions = []
         for item in generator:
             if self.canceled:
                 return
             # Clear the details text so that the details from a previous iteration won't
             # show up for the next iteration
-            self.progress_details = ""
-            self.process_item(item)
-            self.progress_successes += 1
-            self.report_progress()
+            try:
+                self.progress_details = ""
+                self.process_item(item)
+                self.progress_successes += 1
+                self.report_progress()
+            except Exception as e:
+                raise_exception = True
+                for exception in self.acceptable_exceptions:
+                    if isinstance(e, exception):
+                        self._record_failure(e=e)
+                        self.state = reporting_constants.STATE_FAILED
+                        raise_exception = False
+                        exceptions.append(e)
+                        break
+                if raise_exception:
+                    raise
+        if exceptions:
+            raise exceptions[0]
 
     def get_generator(self):
         """
