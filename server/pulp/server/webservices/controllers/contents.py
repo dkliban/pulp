@@ -14,6 +14,7 @@
 from gettext import gettext as _
 
 import web
+from web.webapi import BadRequest
 
 from pulp.common import tags
 from pulp.server.auth.authorization import CREATE, READ, UPDATE, DELETE
@@ -27,7 +28,7 @@ from pulp.server.webservices.controllers.search import SearchController
 from pulp.server.managers.content import orphan
 from pulp.server.content.sources.container import ContentContainer
 from pulp.server.tasks import content
-from pulp.common.tags import action_tag, resource_tag, ACTION_REFRESH_CONTENT_CATALOG,RESOURCE_CONTENT_SOURCE, RESOURCE_CONTENT_CATALOG
+from pulp.common.tags import action_tag, resource_tag, RESOURCE_CONTENT_SOURCE, ACTION_REFRESH_ALL_CONTENT_SOURCES, ACTION_REFRESH_CONTENT_SOURCE
 
 
 
@@ -361,7 +362,9 @@ class ContentSourceCollection(JSONController):
 
     def POST(self, action):
         """
-        Content actions.
+        Content source actions.
+        :param action: Name of action to perform
+        :type action: str
         """
         method = getattr(self, action, None)
         if method:
@@ -371,12 +374,14 @@ class ContentSourceCollection(JSONController):
 
     def refresh(self):
         """
+        Refresh all content sources
 
         """
-        tags = [action_tag(ACTION_REFRESH_CONTENT_CATALOG), resource_tag(RESOURCE_CONTENT_CATALOG,'0')]
-        content.refresh_content_container.apply_async(tags=tags)
-
-        return self.ok('')
+        container = ContentContainer()
+        content_sources = [resource_tag(RESOURCE_CONTENT_SOURCE, id) for id in container.sources.keys()]
+        tags = [action_tag(ACTION_REFRESH_ALL_CONTENT_SOURCES)] + content_sources
+        task_result = content.refresh_content_container.apply_async(tags=tags)
+        raise OperationPostponed(task_result)
 
 
 class ContentSourceResource(JSONController):
@@ -397,6 +402,33 @@ class ContentSourceResource(JSONController):
         else:
             raise MissingResource(source_id=source_id)
 
+    def POST(self, source_id, action):
+        """
+        Content source actions.
+        """
+        container = ContentContainer()
+        source = container.sources.get(source_id)
+        if source:
+            method = getattr(self, action, None)
+            if method:
+                return method(source_id)
+            else:
+                raise BadRequest()
+        else:
+            raise MissingResource(source_id=source_id)
+
+    def refresh(self, content_source_id):
+        """
+        Refresh content source
+        :param content_source_id: A content source ID
+        :type content_source_id: str
+        :return 202
+        :rtype
+        """
+        tags = [action_tag(ACTION_REFRESH_CONTENT_SOURCE), resource_tag(RESOURCE_CONTENT_SOURCE,content_source_id)]
+        task_result = content.refresh_content_source.apply_async(tags=tags, kwargs={'content_source_id':content_source_id})
+        raise OperationPostponed(task_result)
+
 
 # wsgi application -------------------------------------------------------------
 
@@ -415,6 +447,7 @@ _URLS = ('/types/$', ContentTypesCollection,
          '/catalog/([^/]+)$', CatalogResource,
          '/sources/$', ContentSourceCollection,
          '/sources/action/(refresh)/$', ContentSourceCollection,
-         '/sources/([^/]+)/$', ContentSourceResource,)
+         '/sources/([^/]+)/$', ContentSourceResource,
+         '/sources/([^/]+)/action/([^/]+)/$', ContentSourceResource)
 
 application = web.application(_URLS, globals())

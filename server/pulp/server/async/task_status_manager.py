@@ -153,8 +153,7 @@ class TaskStatusManager(object):
         :rtype:  dict
         :raise MissingResource: if there is no task status corresponding to the given task_id
         """
-        #import pydevd
-        #pydevd.settrace('localhost', port=3011, stdoutToServer=True, stderrToServer=True)
+
         task_status = TaskStatus.get_collection().find_one({'task_id': task_id})
         if task_status is None:
             raise MissingResource(task_id)

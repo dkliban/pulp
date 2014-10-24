@@ -30,42 +30,17 @@ def refresh_content_container():
     """
     Refresh the content catalog using available content sources.
     """
-    conduit = ContentSourcesConduit('Refresh Content Container')
+    conduit = ContentSourcesConduit('Refresh Content Sources')
     step = ContentSourcesRefreshStep(conduit)
     step.process_lifecycle()
-    errors = []
-    '''
-    result = None
-    try:
-        container = ContentContainer()
-        e = threading.Event()
-        reports = container.refresh(e, force=False)
-        result = [r.dict() for r in reports]
-    except Exception, e:
-        errors.append(e)
 
-    error = None
-    if len(errors) > 0:
-        error = PulpCodedException()
-        error.child_exceptions = errors
-    result = 'blah'
-    return TaskResult(error=error, result=result)
-    '''
 
 @celery.task(base=Task)
-def refresh_content_source(content_source_id):
+def refresh_content_source(content_source_id=None):
     """
     Refresh the content catalog from a specific content source.
     """
-    errors = []
-    result = None
-    try:
-        container = ContentContainer()
-        source = container.sources.get(content_source_id)
-        reports = source.refresh()
-        result = [r.dict() for r in reports]
-        errors = None
-    except Exception, e:
-        errors.append(e)
-    return TaskResult(error=errors, result=result)
+    conduit = ContentSourcesConduit('Refresh Content Source')
+    step = ContentSourcesRefreshStep(conduit, content_source_id=content_source_id)
+    step.process_lifecycle()
 
