@@ -16,12 +16,17 @@ The rationale is to simplify cleanup on repository delete; the repository's
 working directory is simply deleted.
 """
 
+import logging
 import os
+import shutil
 
 from pulp.common import dateutils
 from pulp.server import config as pulp_config
 from pulp.plugins.model import Repository, RelatedRepository, RepositoryGroup, \
     RelatedRepositoryGroup
+
+
+logger = logging.getLogger(__name__)
 
 
 def _ensure_tz_specified(time_stamp):
@@ -260,17 +265,62 @@ def group_distributor_working_dir(distributor_type_id, group_id, mkdir=True):
     return working_dir
 
 
-def _working_dir_root():
-    storage_dir = pulp_config.config.get('server', 'storage_dir')
-    dir_root = os.path.join(storage_dir, 'working')
+def _working_dir_root(worker_name):
+    """
+    Returns the path to the working directory of a worker
+
+    :param worker_name:     Name of worker for which path is requested
+    :type  name:            basestring
+    """
+    working_dir = pulp_config.config.get('server', 'working_directory')
+    dir_root = os.path.join(working_dir, worker_name)
     return dir_root
 
 
-def _repo_working_dir():
-    dir = os.path.join(_working_dir_root(), 'repos')
+def _repo_working_dir(worker_name):
+    """
+    Returns the path to the repos directory inside working directory
+
+    :param worker_name:     Name of worker for which path is requested
+    :type  name:            basestring
+    """
+    dir = os.path.join(_working_dir_root(worker_name), 'repos')
     return dir
 
 
-def _repo_group_working_dir():
-    dir = os.path.join(_working_dir_root(), 'repo_groups')
+def _repo_group_working_dir(worker_name):
+    """
+    Returns the path to the repo_groups directory inside working directory
+
+    :param worker_name:     Name of worker for which path is requested
+    :type  name:            basestring
+    """
+    dir = os.path.join(_working_dir_root(worker_name), 'repo_groups')
     return dir
+
+
+def _create_working_directory(worker_name):
+    """
+    Creates a working directory inside the cache_directory as specified in /etc/pulp/server.conf
+    default path for cache_directory is /var/cache/pulp
+
+    :param worker_name:     Name of worker that uses the working directory created
+    :type  name:            basestring
+    """
+    working_dir_root = _working_dir_root(worker_name)
+    os.mkdir(working_dir_root)
+    logger.debug('Cre %s', working_dir_root)
+
+
+def _delete_working_directory(worker_name):
+    """
+    Deletes a working directory inside the cache_directory as specified in /etc/pulp/server.conf
+    default path for cache_directory is /var/cache/pulp
+
+    :param worker_name:     Name of worker that uses the working directory being deleted
+    :type  name:            basestring
+    """
+    working_dir_root = _working_dir_root(worker_name)
+    if os.path.exists(working_dir_root):
+        shutil.rmtree(working_dir_root)
+        logger.debug('Deleted %s', working_dir_root)

@@ -1,6 +1,8 @@
 from datetime import datetime
 from gettext import gettext as _
 import logging
+import os
+import shutil
 import signal
 import time
 import uuid
@@ -14,12 +16,15 @@ from pulp.common import constants, dateutils
 from pulp.server.async.celery_instance import celery, RESOURCE_MANAGER_QUEUE, \
     DEDICATED_QUEUE_EXCHANGE
 from pulp.server.async.task_status_manager import TaskStatusManager
+from pulp.server.config import config
 from pulp.server.exceptions import PulpException, MissingResource
 from pulp.server.db.model.criteria import Criteria
 from pulp.server.db.model.dispatch import TaskStatus
 from pulp.server.db.model.resources import ReservedResource, Worker
 from pulp.server.exceptions import NoWorkers
 from pulp.server.managers import resources
+from pulp.server.managers.repo import _common as common_utils
+
 
 
 controller = control.Control(app=celery)
@@ -122,6 +127,9 @@ def _delete_worker(name, normal_shutdown=False):
                 filters={'worker_name': worker.name,
                          'state': {'$in': constants.CALL_INCOMPLETE_STATES}})):
         cancel(task['task_id'])
+
+    # Delete working directory
+    common_utils._delete_working_directory(name)
 
 
 @task
@@ -494,9 +502,10 @@ def cleanup_old_worker(*args, **kwargs):
 
     In those cases, any Pulp tasks that were running or waiting on this worker will show incorrect
     state. Any reserved_resource reservations associated with the previous worker will also be
-    removed along with the worker entry in the database itself. This is called early in the worker
-    start process, and later when its fully online pulp_celerybeat will discover the worker as
-    usual to allow new work to arrive at this worker.
+    removed along with the worker entry in the database itself. The working directory specified in
+    /etc/pulp/serfer.conf (/var/cache/pulp/<worker_name>) by default is removed and recreated. This
+    is called early in the worker start process, and later when its fully online pulp_celerybeat
+    will discover the worker as usual to allow new work to arrive at this worker.
 
     If there is no previous work to cleanup this method still runs, but has not effect on the
     database.
@@ -507,3 +516,4 @@ def cleanup_old_worker(*args, **kwargs):
     """
     name = kwargs['sender'].hostname
     _delete_worker(name, normal_shutdown=True)
+    common_utils._create_working_directory(name)

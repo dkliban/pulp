@@ -243,7 +243,7 @@ class RepoManager(object):
                 logger.exception('Error received removing distributor [%s] from repo [%s]' % (
                     repo_distributor['id'], repo_id))
                 error_tuples.append(e)
-
+        """
         # Delete the repository working directory
         repo_working_dir = common_utils.repository_working_dir(repo_id, mkdir=False)
         if os.path.exists(repo_working_dir):
@@ -253,7 +253,7 @@ class RepoManager(object):
                 logger.exception('Error while deleting repo working dir [%s] for repo [%s]' % (
                     repo_working_dir, repo_id))
                 error_tuples.append(e)
-
+        """
         # Database Updates
         try:
             Repo.get_collection().remove({'id' : repo_id}, safe=True)

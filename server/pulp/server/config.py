@@ -77,6 +77,7 @@ _default_values = {
         'log_level': 'INFO',
         'key_url': '/pulp/gpg',
         'ks_url': '/pulp/ks',
+        'cache_directory': '/var/cache/pulp'
     },
     'tasks': {
         'broker_url': 'qpid://guest@localhost/',
