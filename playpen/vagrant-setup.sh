@@ -67,7 +67,7 @@ sudo dnf install -y git mongodb mongodb-server python-debian python-django pytho
 # disable mongo journaling since this is a dev setup
 echo "Disabling MongoDB journal and starting services"
 sudo sed -i 's/journal = true/nojournal = true/' /etc/mongodb.conf
-for s in qpidd mongod; do
+for s in qpidd; do
   sudo systemctl enable $s
   sudo systemctl start $s
 done

@@ -20,4 +20,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
  config.vm.provision "shell", inline: "yum install -y dnf"
  config.vm.provision "shell", inline: "dnf upgrade -y"
  config.vm.provision "shell", inline: "sudo -u vagrant bash -e /home/vagrant/devel/pulp/playpen/vagrant-setup.sh"
+ config.vm.provision "shell", inline: "mkdir -p /home/vagrant/rs0-{0,1,2}"
+ config.vm.provision "shell", inline: "mongod --fork --nojournal --syslog --port 27017 --dbpath /home/vagrant/rs0-0 --replSet rs0"
+ config.vm.provision "shell", inline: "mongod --fork --nojournal --syslog --port 27018 --dbpath /home/vagrant/rs0-1 --replSet rs0"
+ config.vm.provision "shell", inline: "mongod --fork --nojournal --syslog --port 27019 --dbpath /home/vagrant/rs0-2 --replSet rs0"
+
 end
