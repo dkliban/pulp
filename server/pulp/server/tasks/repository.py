@@ -183,7 +183,7 @@ def publish(repo_id, distributor_id, overrides=None):
 
 
 @celery.task()
-def sync_with_auto_publish(repo_id, overrides=None):
+def sync_with_auto_publish(repo_id, overrides=None, scheduled_call_id=None):
     """
     Sync a repository and upon successful completion, publish
     any distributors that are configured for auto publish.
@@ -195,4 +195,4 @@ def sync_with_auto_publish(repo_id, overrides=None):
     :return: A task result containing the details of the task executed and any spawned tasks
     :rtype: TaskResult
     """
-    return managers.repo_sync_manager().queue_sync_with_auto_publish(repo_id, overrides)
+    return managers.repo_sync_manager().queue_sync_with_auto_publish(repo_id, overrides, scheduled_call_id)

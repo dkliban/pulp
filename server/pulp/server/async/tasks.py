@@ -340,6 +340,9 @@ class Task(CeleryTask, ReservedTaskMixin):
         :param kwargs:  Original keyword arguments for the executed task.
         """
         logger.debug("Task successful : [%s]" % task_id)
+        if 'scheduled_call_id' in kwargs:
+            # put logic here from failure handler 
+            logger.info("Scheduled call id: %s" % kwargs['scheduled_call_id'])
         if not self.request.called_directly:
             now = datetime.now(dateutils.utc_tz())
             finish_time = dateutils.format_iso8601_datetime(now)
@@ -382,6 +385,9 @@ class Task(CeleryTask, ReservedTaskMixin):
         :param einfo:   celery's ExceptionInfo instance, containing serialized traceback.
         """
         logger.debug("Task failed : [%s]" % task_id)
+        if 'scheduled_call_id' in kwargs:
+            # put logic here from failure handler 
+            logger.info("Scheduled call id: %s" % kwargs['scheduled_call_id'])
         if not self.request.called_directly:
             now = datetime.now(dateutils.utc_tz())
             finish_time = dateutils.format_iso8601_datetime(now)
