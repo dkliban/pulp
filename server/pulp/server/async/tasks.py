@@ -20,6 +20,7 @@ from pulp.server.db.model.dispatch import TaskStatus
 from pulp.server.db.model.resources import ReservedResource, Worker
 from pulp.server.exceptions import NoWorkers
 from pulp.server.managers import resources
+from pulp.server.managers.schedule import utils
 
 
 controller = control.Control(app=celery)
@@ -325,6 +326,9 @@ class Task(CeleryTask, ReservedTaskMixin):
                 upsert=True)
         # Run the actual task
         logger.debug("Running task : [%s]" % self.request.id)
+        logger.info('\n\n\nABOUT TO REMOVE EXTRA ARG\n\n\n')
+        if 'scheduled_call_id' in kwargs:
+            kwargs.pop('scheduled_call_id')
         return super(Task, self).__call__(*args, **kwargs)
 
     def on_success(self, retval, task_id, args, kwargs):
@@ -341,8 +345,8 @@ class Task(CeleryTask, ReservedTaskMixin):
         """
         logger.debug("Task successful : [%s]" % task_id)
         if 'scheduled_call_id' in kwargs:
-            # put logic here from failure handler 
-            logger.info("Scheduled call id: %s" % kwargs['scheduled_call_id'])
+            logger.info('\n\n\n scheduled call %s was gooooood \n\n\n' % kwargs['scheduled_call_id'])
+            utils.reset_failure_count(scheduled_call_id)
         if not self.request.called_directly:
             now = datetime.now(dateutils.utc_tz())
             finish_time = dateutils.format_iso8601_datetime(now)
@@ -387,7 +391,7 @@ class Task(CeleryTask, ReservedTaskMixin):
         logger.debug("Task failed : [%s]" % task_id)
         if 'scheduled_call_id' in kwargs:
             # put logic here from failure handler 
-            logger.info("Scheduled call id: %s" % kwargs['scheduled_call_id'])
+            logger.info('\n\n\n scheduled call %s was NOT good \n\n\n' % kwargs['scheduled_call_id'])
         if not self.request.called_directly:
             now = datetime.now(dateutils.utc_tz())
             finish_time = dateutils.format_iso8601_datetime(now)
