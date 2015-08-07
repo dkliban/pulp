@@ -263,7 +263,53 @@ class ReservedTaskMixin(object):
         return AsyncResult(inner_task_id)
 
 
-class Task(CeleryTask, ReservedTaskMixin):
+class PulpTask(CeleryTask):
+    """
+    This is a custom Pulp subclass of the Celery Task object. It looks for a scheduled_call_id for
+    tasks dispatched by the scheduler. The id is used by the on_success and on_failure handlers
+    to update the schedule in the database. This way each worker can disable a scheduled task when
+    it reaches a failure threshhold.
+    """
+    def __call__(self, *args, **kwargs):
+        """
+        This overrides CeleryTask's __call__() method. We use this method
+        to get the scheduled_call_id for tasks dispatched by scheduler.
+        """
+        self.scheduled_call_id = kwargs.pop('scheduled_call_id', None)
+        return super(PulpTask, self).__call__(*args, **kwargs)
+
+    def on_success(self, retval, task_id, args, kwargs):
+        """
+        This overrides the success handler run by the worker when the task
+        executes successfully. It updates the ScheduledCall for any task dispatched by the
+        scheduler.
+
+        :param retval:  The return value of the task.
+        :param task_id: Unique id of the executed task.
+        :param args:    Original arguments for the executed task.
+        :param kwargs:  Original keyword arguments for the executed task.
+        """
+        if self.scheduled_call_id:
+            logger.info('Succesfully ran task for scheduled call: %s' % self.scheduled_call_id)
+            # TODO: add logic for updating ScheduledCall
+
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        """
+        This overrides the error handler run by the worker when the task fails.
+        It updates ScheduledCall for any task dispatched by the scheduler.
+
+        :param exc:     The exception raised by the task.
+        :param task_id: Unique id of the failed task.
+        :param args:    Original arguments for the executed task.
+        :param kwargs:  Original keyword arguments for the executed task.
+        :param einfo:   celery's ExceptionInfo instance, containing serialized traceback.
+        """
+        if self.scheduled_call_id:
+            logger.info('Task failed for scheduled call: %s' % self.scheduled_call_id)
+            # TODO: add logic for updating ScheduledCall
+
+
+class Task(PulpTask, ReservedTaskMixin):
     """
     This is a custom Pulp subclass of the Celery Task object. It allows us to inject some custom
     behavior into each Pulp task, including management of resource locking.
@@ -326,9 +372,6 @@ class Task(CeleryTask, ReservedTaskMixin):
                 upsert=True)
         # Run the actual task
         logger.debug("Running task : [%s]" % self.request.id)
-        logger.info('\n\n\nABOUT TO REMOVE EXTRA ARG\n\n\n')
-        if 'scheduled_call_id' in kwargs:
-            kwargs.pop('scheduled_call_id')
         return super(Task, self).__call__(*args, **kwargs)
 
     def on_success(self, retval, task_id, args, kwargs):
@@ -344,9 +387,6 @@ class Task(CeleryTask, ReservedTaskMixin):
         :param kwargs:  Original keyword arguments for the executed task.
         """
         logger.debug("Task successful : [%s]" % task_id)
-        if 'scheduled_call_id' in kwargs:
-            logger.info('\n\n\n scheduled call %s was gooooood \n\n\n' % kwargs['scheduled_call_id'])
-            utils.reset_failure_count(scheduled_call_id)
         if not self.request.called_directly:
             now = datetime.now(dateutils.utc_tz())
             finish_time = dateutils.format_iso8601_datetime(now)
@@ -375,6 +415,7 @@ class Task(CeleryTask, ReservedTaskMixin):
                 delta['result'] = None
 
             TaskStatusManager.update_task_status(task_id=task_id, delta=delta)
+        return super(Task, self).on_success(retval, task_id, args, kwargs)
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         """
@@ -403,6 +444,7 @@ class Task(CeleryTask, ReservedTaskMixin):
             delta['error'] = exc.to_dict()
 
             TaskStatusManager.update_task_status(task_id=task_id, delta=delta)
+        return super(Task, self).on_failure(retval, task_id, args, kwargs)
 
 
 def cancel(task_id):

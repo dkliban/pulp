@@ -16,7 +16,7 @@ import logging
 import celery
 
 from pulp.common.error_codes import PLP0002, PLP0003, PLP0007
-from pulp.server.async.tasks import Task, TaskResult
+from pulp.server.async.tasks import PulpTask, Task, TaskResult
 from pulp.server.exceptions import PulpCodedException
 from pulp.server.managers import factory as managers
 from pulp.server.tasks import consumer
@@ -182,7 +182,7 @@ def publish(repo_id, distributor_id, overrides=None):
     return managers.repo_publish_manager().queue_publish(repo_id, distributor_id, overrides)
 
 
-@celery.task()
+@PulpTask()
 def sync_with_auto_publish(repo_id, overrides=None):
     """
     Sync a repository and upon successful completion, publish
