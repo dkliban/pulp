@@ -182,7 +182,7 @@ def publish(repo_id, distributor_id, overrides=None):
     return managers.repo_publish_manager().queue_publish(repo_id, distributor_id, overrides)
 
 
-@PulpTask()
+@celery.task(base=PulpTask)
 def sync_with_auto_publish(repo_id, overrides=None):
     """
     Sync a repository and upon successful completion, publish

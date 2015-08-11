@@ -4,6 +4,7 @@ import logging
 import signal
 import time
 import uuid
+import threading
 
 from celery import task, Task as CeleryTask, current_task
 from celery.app import control, defaults
@@ -262,6 +263,8 @@ class ReservedTaskMixin(object):
                                          queue=RESOURCE_MANAGER_QUEUE)
         return AsyncResult(inner_task_id)
 
+global threadlocal
+threadlocal = threading.local()
 
 class PulpTask(CeleryTask):
     """
@@ -270,12 +273,15 @@ class PulpTask(CeleryTask):
     to update the schedule in the database. This way each worker can disable a scheduled task when
     it reaches a failure threshhold.
     """
+
     def __call__(self, *args, **kwargs):
         """
         This overrides CeleryTask's __call__() method. We use this method
         to get the scheduled_call_id for tasks dispatched by scheduler.
         """
-        self.scheduled_call_id = kwargs.pop('scheduled_call_id', None)
+        scheduled_call_id = kwargs.pop('scheduled_call_id', None)
+        if scheduled_call_id:
+            setattr(threadlocal, 'scheduled_call_id', scheduled_call_id)
         return super(PulpTask, self).__call__(*args, **kwargs)
 
     def on_success(self, retval, task_id, args, kwargs):
@@ -289,9 +295,12 @@ class PulpTask(CeleryTask):
         :param args:    Original arguments for the executed task.
         :param kwargs:  Original keyword arguments for the executed task.
         """
-        if self.scheduled_call_id:
-            logger.info('Succesfully ran task for scheduled call: %s' % self.scheduled_call_id)
-            # TODO: add logic for updating ScheduledCall
+        scheduled_call_id = getattr(threadlocal, 'scheduled_call_id', None)
+        if scheduled_call_id:
+            if not isinstance(retval, AsyncResult):
+                logger.info(_('resetting consecutive failure count for schedule %(id)s')
+                             % {'id': scheduled_call_id})
+                utils.reset_failure_count(scheduled_call_id)
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         """
@@ -304,8 +313,11 @@ class PulpTask(CeleryTask):
         :param kwargs:  Original keyword arguments for the executed task.
         :param einfo:   celery's ExceptionInfo instance, containing serialized traceback.
         """
-        if self.scheduled_call_id:
-            logger.info('Task failed for scheduled call: %s' % self.scheduled_call_id)
+        scheduled_call_id = getattr(threadlocal, 'scheduled_call_id', None)
+        if scheduled_call_id:
+            utils.increment_failure_count(scheduled_call_id)
+            logger.info('Task failed for scheduled call: %s' % scheduled_call_id)
+            utils.increment_failure_count(scheduled_call_id)
             # TODO: add logic for updating ScheduledCall
 
 
