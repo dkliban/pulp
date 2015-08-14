@@ -297,6 +297,7 @@ class PulpTask(CeleryTask):
         """
         scheduled_call_id = getattr(threadlocal, 'scheduled_call_id', None)
         if scheduled_call_id:
+            logger.info('Scheduled call %s SUCCESSFUL' % scheduled_call_id)
             if not isinstance(retval, AsyncResult):
                 logger.info(_('resetting consecutive failure count for schedule %(id)s')
                              % {'id': scheduled_call_id})
@@ -315,6 +316,7 @@ class PulpTask(CeleryTask):
         """
         scheduled_call_id = getattr(threadlocal, 'scheduled_call_id', None)
         if scheduled_call_id:
+            logger.info('Scheduled call %s FAILED' % scheduled_call_id)
             utils.increment_failure_count(scheduled_call_id)
             logger.info('Task failed for scheduled call: %s' % scheduled_call_id)
             utils.increment_failure_count(scheduled_call_id)
