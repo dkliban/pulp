@@ -164,6 +164,10 @@ class ScheduledCall(Model):
                                     string.
         :type  resource:            basestring
         """
+        import sys
+        sys.path.append('/home/vagrant/pycharm-debug.egg')
+        import pydevd
+        pydevd.settrace('dkliban-server.rdu.redhat.com', port=3011, stdoutToServer=True, stderrToServer=True)
         if id is None:
             # this creates self._id and self.id
             super(ScheduledCall, self).__init__()
