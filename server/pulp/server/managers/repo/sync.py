@@ -76,7 +76,7 @@ class RepoSyncManager(object):
         @raise MissingResource: if repo_id does not refer to a valid repo
         @raise OperationFailed: if the given repo does not have an importer set
         """
-
+        raise Exception
         repo_coll = Repo.get_collection()
 
         # Validation

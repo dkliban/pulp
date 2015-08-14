@@ -297,11 +297,12 @@ class PulpTask(CeleryTask):
         """
         scheduled_call_id = getattr(threadlocal, 'scheduled_call_id', None)
         if scheduled_call_id:
-            logger.info('Scheduled call %s SUCCESSFUL' % scheduled_call_id)
+            logger.info('Scheduled call %s SUCCESSFUL for task: %s ' % (scheduled_call_id, self.name))
             if not isinstance(retval, AsyncResult):
                 logger.info(_('resetting consecutive failure count for schedule %(id)s')
                              % {'id': scheduled_call_id})
                 utils.reset_failure_count(scheduled_call_id)
+        logger.info('Task %s finished SUCCESSFULLY' % self.name)
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         """
@@ -316,11 +317,10 @@ class PulpTask(CeleryTask):
         """
         scheduled_call_id = getattr(threadlocal, 'scheduled_call_id', None)
         if scheduled_call_id:
-            logger.info('Scheduled call %s FAILED' % scheduled_call_id)
+            logger.info('Scheduled call %s FAILED for task: %s' % (scheduled_call_id, self.name))
             utils.increment_failure_count(scheduled_call_id)
             logger.info('Task failed for scheduled call: %s' % scheduled_call_id)
-            utils.increment_failure_count(scheduled_call_id)
-            # TODO: add logic for updating ScheduledCall
+        logger.info('Task %s FAILED' % self.name)
 
 
 class Task(PulpTask, ReservedTaskMixin):
@@ -458,7 +458,7 @@ class Task(PulpTask, ReservedTaskMixin):
             delta['error'] = exc.to_dict()
 
             TaskStatusManager.update_task_status(task_id=task_id, delta=delta)
-        return super(Task, self).on_failure(retval, task_id, args, kwargs)
+        return super(Task, self).on_failure(exc, task_id, args, kwargs, einfo)
 
 
 def cancel(task_id):
