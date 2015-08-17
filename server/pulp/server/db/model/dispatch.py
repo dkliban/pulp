@@ -164,10 +164,6 @@ class ScheduledCall(Model):
                                     string.
         :type  resource:            basestring
         """
-        import sys
-        sys.path.append('/home/vagrant/pycharm-debug.egg')
-        import pydevd
-        pydevd.settrace('dkliban-server.rdu.redhat.com', port=3011, stdoutToServer=True, stderrToServer=True)
         if id is None:
             # this creates self._id and self.id
             super(ScheduledCall, self).__init__()
@@ -204,7 +200,7 @@ class ScheduledCall(Model):
         self.task = task
         self.total_run_count = total_run_count
         self.kwargs['scheduled_call_id'] = self.id
-
+        logger.info('\n\n\nTOTAL RUN COUNT: %s\n\n\n' % self.total_run_count)
         if first_run is None:
             # get the date and time from the iso_schedule value, and if it does not have a date and
             # time, use the current date and time
