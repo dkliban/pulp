@@ -41,7 +41,8 @@ _CONNECTION = None
 
 def connect():
     global _CONNECTION
-    _CONNECTION = httplib.HTTPSConnection(HOST, PORT)
+    context = httplib.ssl._create_unverified_context() 
+    _CONNECTION = httplib.HTTPSConnection(HOST, PORT, context=context)
 
 # auth credentials ------------------------------------------------------------
 
