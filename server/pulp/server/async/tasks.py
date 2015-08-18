@@ -280,9 +280,10 @@ class PulpTask(CeleryTask):
         to get the scheduled_call_id for tasks dispatched by scheduler.
         """
         scheduled_call_id = kwargs.pop('scheduled_call_id', None)
-        logger.info('Setting scheduled_call_id %s for %s' % (scheduled_call_id, self.name))
+
 
         if scheduled_call_id:
+            logger.info('Setting scheduled_call_id %s for %s' % (scheduled_call_id, self.name))
             setattr(threadlocal, 'scheduled_call_id', scheduled_call_id)
         return super(PulpTask, self).__call__(*args, **kwargs)
 
@@ -323,10 +324,10 @@ class PulpTask(CeleryTask):
         #import pydevd
         #pydevd.settrace('localhost', port=3011, stdoutToServer=True, stderrToServer=True)
         if scheduled_call_id:
-            logger.info('Scheduled call %s FAILED for task: %s' % (scheduled_call_id, self.name))
+            logger.info('Scheduled call %s FAILED for task: %s. args: %s, kwargs: %s' % (scheduled_call_id, self.name, args, kwargs))
             utils.increment_failure_count(scheduled_call_id)
             logger.info('Task failed for scheduled call: %s' % scheduled_call_id)
-        logger.info('Task %s FAILED' % self.name)
+        logger.info('Task %s FAILED. args: %s, kwargs: %s' % (self.name, args, kwargs))
 
 
 
