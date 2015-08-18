@@ -281,6 +281,7 @@ class PulpTask(CeleryTask):
         """
         scheduled_call_id = kwargs.pop('scheduled_call_id', None)
         logger.info('Setting scheduled_call_id %s for %s' % (scheduled_call_id, self.name))
+
         if scheduled_call_id:
             setattr(threadlocal, 'scheduled_call_id', scheduled_call_id)
         return super(PulpTask, self).__call__(*args, **kwargs)
@@ -297,6 +298,8 @@ class PulpTask(CeleryTask):
         :param kwargs:  Original keyword arguments for the executed task.
         """
         scheduled_call_id = getattr(threadlocal, 'scheduled_call_id', None)
+        #import pydevd
+        #pydevd.settrace('localhost', port=3011, stdoutToServer=True, stderrToServer=True)
         if scheduled_call_id:
             logger.info('Scheduled call %s SUCCESSFUL for task: %s ' % (scheduled_call_id, self.name))
             if not isinstance(retval, AsyncResult):
@@ -317,6 +320,8 @@ class PulpTask(CeleryTask):
         :param einfo:   celery's ExceptionInfo instance, containing serialized traceback.
         """
         scheduled_call_id = getattr(threadlocal, 'scheduled_call_id', None)
+        #import pydevd
+        #pydevd.settrace('localhost', port=3011, stdoutToServer=True, stderrToServer=True)
         if scheduled_call_id:
             logger.info('Scheduled call %s FAILED for task: %s' % (scheduled_call_id, self.name))
             utils.increment_failure_count(scheduled_call_id)

@@ -201,6 +201,8 @@ class ScheduledCall(Model):
         self.total_run_count = total_run_count
         self.kwargs['scheduled_call_id'] = self.id
         logger.info('\n\n\nTOTAL RUN COUNT: %s\n\n\n' % self.total_run_count)
+        #import pydevd
+        #pydevd.settrace('localhost', port=3011, stdoutToServer=True, stderrToServer=True)
         if first_run is None:
             # get the date and time from the iso_schedule value, and if it does not have a date and
             # time, use the current date and time
