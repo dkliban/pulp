@@ -47,14 +47,6 @@ def initialize(name=None, seeds=None, max_pool_size=None, replica_set=None, max_
         if seeds is None:
             seeds = config.config.get('database', 'seeds')
 
-        if seeds != '':
-            first_seed = seeds.split(',')[0]
-            seed = first_seed.strip().split(':')
-            if len(seed) == 2:
-                connection_kwargs.update({'host': seed[0], 'port': int(seed[1])})
-            else:
-                connection_kwargs.update({'host': seed[0]})
-
         if max_pool_size is None:
             # we may want to make this configurable, but then again, we may not
             max_pool_size = _DEFAULT_MAX_POOL_SIZE
@@ -65,7 +57,7 @@ def initialize(name=None, seeds=None, max_pool_size=None, replica_set=None, max_
                 replica_set = config.config.get('database', 'replica_set')
 
         if replica_set is not None:
-            connection_kwargs['replicaset'] = replica_set
+            connection_kwargs['replicaSet'] = replica_set
 
         # Process SSL settings
         if config.config.getboolean('database', 'ssl'):
@@ -100,18 +92,24 @@ def initialize(name=None, seeds=None, max_pool_size=None, replica_set=None, max_
         # Wait until the Mongo database is available
         mongo_retry_timeout_seconds_generator = itertools.chain([1, 2, 4, 8, 16],
                                                                 itertools.repeat(32))
-        while True:
-            try:
-                _CONNECTION = mongoengine.connect(name, **connection_kwargs)
-            except mongoengine.connection.ConnectionError as e:
-                next_delay = min(mongo_retry_timeout_seconds_generator.next(), max_timeout)
-                msg = _(
-                    "Could not connect to MongoDB at %(url)s:\n%(e)s\n... Waiting "
+
+        if seeds != '':
+            seeds_list = seeds.split(',')
+            if len(seeds_list) > 1 and not replica_set:
+                raise RuntimeError(_("Pulp requires replica_set to be specified when more "
+                                     "than database seed is provided."))
+            connection_kwargs.update({'host': seeds.replace(' ', '')})
+            while True:
+                try:
+                    _CONNECTION = mongoengine.connect(name, **connection_kwargs)
+                    break
+                except mongoengine.connection.ConnectionError as e:
+                    next_delay = min(mongo_retry_timeout_seconds_generator.next(), max_timeout)
+                    msg = _(
+                    "Could not connect to any of MongoDB seeds at %(url)s:\n... Waiting "
                     "%(retry_timeout)s seconds and trying again.")
-                _logger.error(msg % {'retry_timeout': next_delay, 'url': seeds, 'e': str(e)})
-            else:
-                break
-            time.sleep(next_delay)
+                    _logger.error(msg % {'retry_timeout': next_delay, 'url': seeds})
+                time.sleep(next_delay)
 
         try:
             _DATABASE = mongoengine.connection.get_db()
@@ -141,6 +139,33 @@ def initialize(name=None, seeds=None, max_pool_size=None, replica_set=None, max_
         _CONNECTION = None
         _DATABASE = None
         raise
+
+def _connect_to_one_of_seeds(connection_kwargs, seeds, db_name):
+    """
+    Helper function to iterate over a list of database seeds till a successful connection is made
+
+    :param connection_kwargs: arguments to pass to mongoengine connection
+    :param seeds_list: list of seeds to try connecting to
+    :return: True if connection is made and False if not
+    """
+    seeds_list = seeds.split(',')
+    for full_seed in seeds_list:
+        #seed = full_seed.strip().split(':')
+        #if len(seed) == 2:
+        #    connection_kwargs.update({'host': seed[0]})
+        #else:
+        #    connection_kwargs.update({'host': seed[0]})
+        connection_kwargs.update({'host': seeds.replace(' ', '')})
+        try:
+            _logger.info("Attempting to connect to %(host)s" % connection_kwargs)
+            connection = mongoengine.connect(db_name, **connection_kwargs)
+            return connection
+        except mongoengine.connection.ConnectionError as e:
+            msg = _("Could not connect to MongoDB at %(url)s:\n...  ")
+            _logger.info(msg % {'url': full_seed, 'e': str(e)})
+        time.sleep(2)
+
+    return False
 
 
 class PulpCollectionFailure(PulpException):
