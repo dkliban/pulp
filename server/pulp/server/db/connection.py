@@ -12,9 +12,10 @@ from pymongo.collection import Collection
 from pymongo.errors import AutoReconnect, OperationFailure
 from pymongo.son_manipulator import NamespaceInjector
 
+from pulp.common import error_codes
 from pulp.server import config
 from pulp.server.compat import wraps
-from pulp.server.exceptions import PulpException
+from pulp.server.exceptions import PulpCodedException, PulpException
 
 
 _CONNECTION = None
@@ -46,8 +47,6 @@ def initialize(name=None, seeds=None, max_pool_size=None, replica_set=None, max_
 
         if seeds is None:
             seeds = config.config.get('database', 'seeds').replace(' ', '')
-        elif seeds == '':
-            seeds = 'localhost:27017'
 
         if max_pool_size is None:
             # we may want to make this configurable, but then again, we may not
@@ -93,8 +92,7 @@ def initialize(name=None, seeds=None, max_pool_size=None, replica_set=None, max_
         if seeds != '':
             seeds_list = seeds.split(',')
             if len(seeds_list) > 1 and not replica_set:
-                raise RuntimeError(_("Pulp requires replica_set to be specified when more "
-                                     "than database seed is provided."))
+                raise PulpCodedException(error_code=error_codes.PLP0041)
             while True:
                 _CONNECTION = _connect_to_one_of_seeds(connection_kwargs, seeds_list, name)
                 if _CONNECTION:
@@ -105,6 +103,8 @@ def initialize(name=None, seeds=None, max_pool_size=None, replica_set=None, max_
                             "%(retry_timeout)s seconds and trying again.")
                     _logger.error(msg % {'retry_timeout': next_delay, 'url': seeds})
                     time.sleep(next_delay)
+        else:
+            raise PulpCodedException(error_code=error_codes.PLP0040)
 
         try:
             _DATABASE = mongoengine.connection.get_db()
@@ -142,7 +142,7 @@ def _connect_to_one_of_seeds(connection_kwargs, seeds_list, db_name):
 
     :param connection_kwargs: arguments to pass to mongoengine connection
     :param seeds_list: list of seeds to try connecting to
-    :return: True if connection is made and False if not
+    :return: Connection object if connection is made or None if no connection is made
     """
     for seed in seeds_list:
         connection_kwargs.update({'host': seed})
@@ -158,8 +158,6 @@ def _connect_to_one_of_seeds(connection_kwargs, seeds_list, db_name):
             _logger.info(e)
             msg = _("Could not connect to MongoDB at %(url)s:\n...  ")
             _logger.info(msg % {'url': seed, 'e': str(e)})
-
-    return False
 
 
 class PulpCollectionFailure(PulpException):

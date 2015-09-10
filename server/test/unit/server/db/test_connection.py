@@ -2,9 +2,10 @@ import unittest
 
 from mock import patch, Mock, call
 
+from pulp.common import error_codes
 from pulp.server import config
 from pulp.server.db import connection
-
+from pulp.server.exceptions import PulpCodedException
 
 class MongoEngineConnectionError(Exception):
     pass
@@ -34,11 +35,8 @@ class TestDatabaseSeeds(unittest.TestCase):
     def test_seeds_is_empty(self, mock_mongoengine):
         mock_mongoengine.connect.return_value.server_info.return_value = {'version': '2.6.0'}
         config.config.set('database', 'replica_set', '')
-        connection.initialize(seeds='')
-        max_pool_size = connection._DEFAULT_MAX_POOL_SIZE
-        database = config.config.get('database', 'name')
-        mock_mongoengine.connect.assert_called_with(database, host='localhost:27017',
-                                                    max_pool_size=max_pool_size, replicaSet='')
+        config.config.set('database', 'seeds', '')
+        self.assertRaises(PulpCodedException, connection.initialize)
 
     @patch('pulp.server.db.connection.mongoengine')
     @patch('pulp.server.db.connection._connect_to_one_of_seeds')
