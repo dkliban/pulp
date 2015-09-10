@@ -26,6 +26,7 @@ _default_values = {
     'database': {
         'name': 'pulp_database',
         'seeds': 'localhost:27017',
+        'replica_set': '',
         'username': '',
         'password': '',
         'ssl': 'false',
