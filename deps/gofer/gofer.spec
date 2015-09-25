@@ -266,6 +266,9 @@ This plug-in provides RMI access to package (RPM) management.
 
 
 %changelog
+* Fri Sep 25 2015 Jeff Ortel <jortel@redhat.com> 2.6.6-1
+- 2.4 compat - Exception not a new-style class until 2.5. (jortel@redhat.com)
+
 * Thu Sep 24 2015 Jeff Ortel <jortel@redhat.com> 2.6.5-1
 - Improved handling of malformed AMQP messages. (jortel@redhat.com)
 
