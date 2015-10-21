@@ -54,6 +54,7 @@ def _queue_reserved_task(name, task_id, resource_id, inner_args, inner_kwargs):
     :type  resource_id:   basestring
 
     :return: None
+    many more comments!!!!
     """
     while True:
         try:
