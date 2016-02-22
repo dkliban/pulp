@@ -10,6 +10,7 @@ from hmac import HMAC
 
 from mongoengine import (BooleanField, DictField, Document, DynamicField, IntField,
                          ListField, StringField, UUIDField, ValidationError, QuerySetNoCache)
+from mongoengine.queryset import NotUniqueError
 from mongoengine import signals
 
 from pulp.common import constants, dateutils, error_codes
@@ -613,6 +614,18 @@ class ContentUnit(AutoRetryDocument):
         content_list = RepositoryContentUnit.objects(unit_id=self.id)
         id_list = [item.repo_id for item in content_list]
         return Repository.objects(repo_id__in=id_list)
+
+    def save_or_get(self):
+        """
+        This method checks if a content unit with the same unit key already exists or not. If one
+        does not exist, the parent save() method is called. When a unit does exist, a reference to
+        the exisiting unit is returned.
+        :return:
+        """
+        try:
+            return self.save()
+        except NotUniqueError:
+            return ContentUnit.objects.get(unit_id=self.id)
 
     @property
     def storage_path(self):
