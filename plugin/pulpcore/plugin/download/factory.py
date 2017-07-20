@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 
 from pulpcore.download import (DigestValidation, HttpDownload, FileDownload, FileWriter,
                                SizeValidation)
-
+from pulpcore.app.upload import PulpTemporaryUploadedFile
 
 class Factory:
     """
@@ -29,20 +29,20 @@ class Factory:
         """
         self.importer = importer
 
-    def build(self, url, path=None, artifact=None):
+    def build(self, url, path=None, remote_artifact=None):
         """
         Build a downloader.
 
         Args:
             url (str): The download URL.
             path (str): The optional absolute path to where the downloaded file is to be stored.
-            artifact (pulpcore.app.models.Artifact): An optional artifact.
+            remote_artifact (pulpcore.app.models.RemoteArtifact): An optional remote artifact.
 
         Returns:
             pulpcore.download.Download: A download object configured using the
                 attributes of the importer.
         """
-        if (not path) and (not artifact):
+        if (not path) and (not remote_artifact):
             raise ValueError(_('Either "path" or "artifact" is required.'))
 
         try:
@@ -50,7 +50,7 @@ class Factory:
         except KeyError:
             raise ValueError(_('URL: {u} not supported.'.format(u=url)))
         else:
-            return builder(self, url, path, artifact)
+            return builder(self, url, path, remote_artifact)
 
     def _file(self, url, path=None, artifact=None):
         """
@@ -72,7 +72,7 @@ class Factory:
         self._add_validation(download, artifact)
         return download
 
-    def _http(self, url, path=None, artifact=None):
+    def _http(self, url, path=None, remote_artifact=None):
         """
         Build a download for http:// URLs.
 
@@ -84,17 +84,18 @@ class Factory:
         Returns:
             HttpDownload: An http download.
         """
-        if artifact:
-            _path = artifact.relative_path
+        if remote_artifact:
+            import os
+            _path = os.path.join("/var/lib/pulp/tmp", remote_artifact.sha256)
         else:
             _path = path
         download = HttpDownload(url, FileWriter(_path))
         download.user.name = self.importer.basic_auth_user
         download.user.password = self.importer.basic_auth_password
-        self._add_validation(download, artifact)
+        self._add_validation(download, remote_artifact)
         return download
 
-    def _https(self, url, path=None, artifact=None):
+    def _https(self, url, path=None, remote_artifact=None):
         """
         Build a download for https:// URLs.
 
@@ -106,10 +107,12 @@ class Factory:
         Returns:
             HttpDownload: An https download.
         """
-        if artifact:
-            _path = artifact.relative_path
+        if remote_artifact:
+            import os
+            _path = os.path.join("/var/lib/pulp/tmp", remote_artifact.sha256)
         else:
             _path = path
+        #download = HttpDownload(url, PulpTemporaryUploadedFile(None, None, None, None, 'charset'))
         download = HttpDownload(url, FileWriter(_path))
         download.ssl.ca_certificate = self.importer.ssl_ca_certificate.name
         download.ssl.client_certificate = self.importer.ssl_client_certificate.name
@@ -118,7 +121,7 @@ class Factory:
         download.user.name = self.importer.basic_auth_user
         download.user.password = self.importer.basic_auth_password
         download.proxy_url = self.importer.proxy_url
-        self._add_validation(download, artifact)
+        #self._add_validation(download, remote_artifact)
         return download
 
     def _add_validation(self, download, artifact):

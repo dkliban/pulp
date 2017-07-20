@@ -1,11 +1,14 @@
+import hashlib
 import itertools
 
 from collections.abc import Iterable
 from logging import getLogger
 
 from django.db.models import Q
+from django.db.utils import IntegrityError
 
 from pulpcore.download import Download
+from pulpcore.app.models import Artifact
 
 from .model import RemoteArtifact
 
@@ -166,13 +169,18 @@ class DownloadIterator(Iterable):
         Yields:
             Download: The appropriate download object.
         """
-        for artifact in ArtifactIterator(self.content):
-            if self.deferred or artifact.model.downloaded:
+        for delayed_artifact in ArtifactIterator(self.content):
+            q = Q()
+            for algorithm in hashlib.algorithms_guaranteed:
+                if getattr(delayed_artifact.model, algorithm):
+                    kwargs = {algorithm: getattr(delayed_artifact.model, algorithm)}
+                    q |= Q(**kwargs)
+            artifact = Artifact.objects.filter(q)
+            if artifact:
                 download = NopDownload()
-                download.attachment = artifact
-                artifact.path = None
+                download.attachment = delayed_artifact
             else:
-                download = artifact.download
+                download = delayed_artifact.download
             yield download
 
     def __iter__(self):
@@ -199,7 +207,7 @@ class ArtifactIterator(Iterable):
         does not have any un-downloaded artifacts, A NopArtifact is yielded.
 
         Yields:
-            RemoteArtifact: The flattened artifacts.
+            DelayedArtifact: The flattened artifacts.
         """
         for content in ContentIterator(self.content):
             if content.artifacts:
@@ -207,7 +215,7 @@ class ArtifactIterator(Iterable):
                     artifact.content = content
                     yield artifact
             else:
-                artifact = RemoteArtifact(NopArtifact(), NopDownload())
+                artifact = RemoteArtifact(None, NopArtifact(), NopDownload())
                 artifact.content = content
                 yield artifact
 
