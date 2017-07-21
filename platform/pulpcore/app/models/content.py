@@ -16,9 +16,6 @@ class Artifact(Model):
     Fields:
 
         file (models.FileField): The stored file.
-        downloaded (models.BooleanField): The associated file has been successfully downloaded.
-        requested (models.BooleanField): The associated file has been requested by a client at
-            least once.
         size (models.IntegerField): The size of the file in bytes.
         md5 (models.CharField): The MD5 checksum of the file.
         sha1 (models.CharField): The SHA-1 checksum of the file.
@@ -38,8 +35,6 @@ class Artifact(Model):
         return default_storage.get_artifact_path(self.sha256)
 
     file = models.FileField(db_index=True, upload_to=storage_path, max_length=255)
-    downloaded = models.BooleanField(db_index=True, default=False)
-    requested = models.BooleanField(db_index=True, default=False)
     size = models.IntegerField(blank=True, null=True)
     md5 = models.CharField(max_length=32, blank=True, null=True)
     sha1 = models.CharField(max_length=40, blank=True, null=True)
@@ -109,9 +104,6 @@ class DeferredArtifact(Model):
     Fields:
 
         file (models.FileField): The stored file.
-        downloaded (models.BooleanField): The associated file has been successfully downloaded.
-        requested (models.BooleanField): The associated file has been requested by a client at
-            least once.
         size (models.IntegerField): The expected size of the file in bytes.
         md5 (models.CharField): The expected MD5 checksum of the file.
         sha1 (models.CharField): The expected SHA-1 checksum of the file.
@@ -121,8 +113,6 @@ class DeferredArtifact(Model):
         sha512 (models.CharField): The expected SHA-512 checksum of the file.
     """
     url = models.TextField(blank=True, validators=[validators.URLValidator])
-    downloaded = models.BooleanField(db_index=True, default=False)
-    requested = models.BooleanField(db_index=True, default=False)
     size = models.IntegerField(blank=True, null=True)
     md5 = models.CharField(max_length=32, blank=True, null=True)
     sha1 = models.CharField(max_length=40, blank=True, null=True)
@@ -130,3 +120,5 @@ class DeferredArtifact(Model):
     sha256 = models.CharField(max_length=64, blank=True, null=True)
     sha384 = models.CharField(max_length=96, blank=True, null=True)
     sha512 = models.CharField(max_length=128, blank=True, null=True)
+    content_artifact = models.ForeignKey(ContentArtifact, on_delete=models.CASCADE)
+    importer = models.ForeignKey('Importer', on_delete=models.CASCADE)
