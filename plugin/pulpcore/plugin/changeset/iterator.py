@@ -169,18 +169,18 @@ class DownloadIterator(Iterable):
         Yields:
             Download: The appropriate download object.
         """
-        for delayed_artifact in ArtifactIterator(self.content):
+        for remote_artifact in ArtifactIterator(self.content):
             q = Q()
             for algorithm in hashlib.algorithms_guaranteed:
-                if getattr(delayed_artifact.model, algorithm):
-                    kwargs = {algorithm: getattr(delayed_artifact.model, algorithm)}
+                if getattr(remote_artifact.model, algorithm):
+                    kwargs = {algorithm: getattr(remote_artifact.model, algorithm)}
                     q |= Q(**kwargs)
             artifact = Artifact.objects.filter(q)
             if artifact:
                 download = NopDownload()
-                download.attachment = delayed_artifact
+                download.attachment = artifact
             else:
-                download = delayed_artifact.download
+                download = remote_artifact.download
             yield download
 
     def __iter__(self):

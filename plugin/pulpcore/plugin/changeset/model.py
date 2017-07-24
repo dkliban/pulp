@@ -175,15 +175,16 @@ class RemoteArtifact(Remote):
 
     Attributes:
         download (pulpcore.download.Download): An object used to download the content.
-        content (RemoteContent): The associated remote content.
+        content_artifact (ContentArtifact): The association between an Artifact and Content.
         path (str): Absolute path to the downloaded file.  May be (None) when
             downloading is deferred or the artifact has already been downloaded.
 
     Examples:
         >>>
-        >>> from pulpcore.plugin.models import Artifact
+        >>> from pulpcore.plugin.models import ContentArtifact, DeferredArtifact
         >>>
-        >>> model = Artifact(...)  # DB model instance.
+        >>> model = DeferredArtifact(...)
+        >>> content_artifact = ContentArtifact(...)
         >>> download = ...
         >>> ...
         >>> artifact = RemoteArtifact(model, content_artifact, download)
@@ -201,9 +202,9 @@ class RemoteArtifact(Remote):
         """
 
         Args:
-            model (pulpcore.plugin.models.RemoteArtifact): A remote artifact model instance.
-                This instance will be used to store a newly created or updated
-                artifact in the DB.
+            model (pulpcore.plugin.models.DeferredArtifact): A remote artifact model instance.
+                This object will be used to determine if an Artifact exists or one needs to
+                created.
             download (pulpcore.download.Download): A An object used to download the content.
         """
         super(RemoteArtifact, self).__init__(model)
@@ -215,7 +216,6 @@ class RemoteArtifact(Remote):
             self.path = download.writer.path
         else:
             self.path = None
-        self.content = None
 
     def settle(self):
         """
@@ -232,9 +232,6 @@ class RemoteArtifact(Remote):
         Update the DB model to store the downloaded file.
         Then, save in the DB.
         """
-        if self.path:
-            self.model.file = File(open(self.path, mode='rb'))
-            self.model.downloaded = True
         super(RemoteArtifact, self).save()
 
     def __hash__(self):
