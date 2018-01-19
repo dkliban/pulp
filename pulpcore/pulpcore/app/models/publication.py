@@ -18,7 +18,7 @@ class Publication(Model):
 
     publisher = models.ForeignKey('Publisher', on_delete=models.CASCADE)
 
-    repo_version = models.ForeignKey('RepositoryVersion', on_delete=models.CASCADE)
+    repository_version = models.ForeignKey('RepositoryVersion', on_delete=models.CASCADE)
 
 
 class PublishedFile(Model):
