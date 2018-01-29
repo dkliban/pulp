@@ -1,3 +1,34 @@
+.. _vagrantcloud:
+
+Vagrant Cloud
+=============
+
+Each release of ``pulpcore`` on PyPI is released as a Vagrant box on `vagrantcloud.com <https://app.vagrantup.com/pulp/boxes/pulpcore>`_.
+
+Start up the ``pulpcore`` Vagrant box::
+
+    $ vagrant init pulp/pulpcore
+    $ vagrant up
+
+Once the box is downloaded and booted an ssh connection can be established with a forward tunnel for port 8000::
+
+    $ vagrant ssh -- -L 8000:localhost:8000
+
+Become user ``pulp``, activate the ``pulpenv`` virtual env, and start the webserver::
+
+    $ sudo su - pulp
+    $ source pulpvenv/bin/activate
+    $ pulp-manager runserver
+
+The browsable API can be accessed at http://localhost:8000/api/v3/ on the host machine machine.
+
+
+.. code:: python
+
+  def my_function():
+      "just a test"
+      print 8/2
+
 .. _quickstart:
 
 Quickstart
